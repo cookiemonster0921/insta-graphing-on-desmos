@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>what</title>
+    <style>
+      .full-width {
+        width: 1600px; /* Make it span the full width */
+        height: 800px; /* Optional: Set a height */
+        background-color: lightblue; /* Optional: Set a background color */
+      }
+      body {
+        margin: 5%; /* Remove default margin to ensure div spans full width */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>hey there</h1>
+    <p>*limit of 120 posts grabbed currently</p>
+    <br />
+    <input id="fb" placeholder="fbdtsg token" /><br />
+    <input id="username" placeholder="username" /><br />
+    <button id="submit">submit</button>
+    <div
+      class="full-width"
+      id="calculator"
+      style="width: 1600px; height: 800px"
+    ></div>
+
+    <script src="https://www.desmos.com/api/v1.10/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+
+    <script>
+      var elt = document.getElementById("calculator");
+      var username = document.getElementById("username");
+      var fb = document.getElementById("fb");
+      var submit = document.getElementById("submit");
+      var calculator = Desmos.GraphingCalculator(elt);
+     
+      
+      submit.addEventListener("click", (event) => {
+        console.log(fb.value)
+        console.log(username.value)
+        let likes = [];
+        let comments = [];
+        let posts = 0;
+        let p = [];
+        const urlencoded = new URLSearchParams();
+        urlencoded.append("fb", fb.value);
+        urlencoded.append("username", username.value);
+        const requestOptions = {
+          method: "POST",
+          body: urlencoded,
+          redirect: "follow",
+        };
+        fetch("/api", requestOptions)
+          .then((response) => {
+            return response.text();
+          })
+          .then((result) => {
+            console.log(result);
+            calculator.setBlank();
+            var data =
+              JSON.parse(result)["data"][
+                "xdt_api__v1__feed__user_timeline_graphql_connection"
+              ]["edges"];
+            for (var post = 0; post < data.length; post++) {
+              likes.push(String(data[post]["node"]["like_count"]));
+              comments.push(String(data[post]["node"]["comment_count"]));
+              posts += 1;
+              p.push(String(posts));
+            }
+            likes.reverse();
+            comments.reverse();
+            console.log(posts);
+            console.log(likes);
+            console.log(comments);
+
+            calculator.setExpression({
+              type: "table",
+              columns: [
+                {
+                  latex: "p",
+                  values: p,
+                },
+                {
+                  latex: "l",
+                  values: likes,
+                  pointStyle: Desmos.Styles.CROSS,
+                  points: true,
+                  lines: true,
+                  lineStyle: Desmos.Styles.SOLID,
+                  color: "#03fcd7",
+                },
+                {
+                  latex: "c",
+                  values: comments,
+                  color: "#0ffc03",
+                  pointStyle: Desmos.Styles.CROSS,
+                  points: true,
+                  lines: true,
+                  lineStyle: Desmos.Styles.SOLID,
+                },
+              ],
+            });
+            calculator.setExpression({
+              latex: `A=(${posts / 2}, -1)`,
+              label: `${data[0]["node"]["owner"]["full_name"]}'s likes and comments on posts `,
+              showLabel: true,
+              labelOrientation: Desmos.LabelOrientations.BELOW,
+            });
+            calculator.setExpression({
+              latex: `A=(-1, ${posts / 2})`,
+              label: `blue is likes \n green is comments`,
+              showLabel: true,
+              labelOrientation: Desmos.LabelOrientations.LEFT,
+            });
+            calculator.setExpression({
+              latex: `x=${posts + 1}`,
+              lineStyle: Desmos.Styles.DASHED,
+            });
+            calculator.updateSettings({ fontSize: Desmos.FontSizes.LARGE });
+          })
+          .catch((error) => console.error(error));
+      });
+    </script>
+  </body>
+</html>
